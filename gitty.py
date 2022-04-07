@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date
 import logging
 from urllib.parse import urljoin
 import requests
@@ -36,6 +36,10 @@ def get_main():
         repos[f"{item['name']}"] = item
 
     repos['language_count'] = language_count
+
+    today = date.today()
+    current_date = today.strftime("%m/%d/%y")
+    repos['current_date'] = current_date
     repos_scraped = len(repos) - 1
 
     logging.info(f"returning {repos_scraped} repos!")
@@ -71,24 +75,7 @@ def parse(url):
     issues = safe_get(soup, '#issues-repo-tab-count', 'issues')
     pr = safe_get(soup, '#pull-requests-repo-tab-count', 'pr')
     url = url
-    date = str(datetime.now())
 
-    contributors = []
-
-    try:
-        coders = soup.select('a[data-hovercard-type="user"]')
-    except:
-        IndexError
-        logging.warning(f"can't find contributors for {url}")
-    else:
-        for coder in coders:
-            if "github" in coder['href']:
-                contributors.append(coder['href'])
-        
-    if contributors == []: 
-        logging.warning(f"can't find contributors for {url}")
-        contributors = [url]   
-        
     item = {
         "name": name,
         "url": url,
@@ -97,16 +84,12 @@ def parse(url):
         "total_stars": total_stars,
         "issues": issues,
         "pr": pr,
-        "contributors": contributors,
-        "date": date,
     }
 
     if language != "Attribute missing":
         language_count[language] = 1 + language_count.get(language, 0)
-    language_count['date'] = date
-
-    return item
     
+    return item
     
 
 print(get_main())
