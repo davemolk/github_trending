@@ -1,8 +1,6 @@
 from datetime import datetime
 import logging
-from time import sleep
 from urllib.parse import urljoin
-from urllib.request import Request
 import requests
 from bs4 import BeautifulSoup
 
@@ -28,6 +26,7 @@ def get_main():
     except requests.exceptions.RequestException as e:
         logging.warning(f'Unable to get github.com/trending: {e}')
         return None
+
     soup = BeautifulSoup(r.text, 'html.parser')
 
     for repo in soup.find_all('article', class_='Box-row'):
@@ -37,8 +36,9 @@ def get_main():
         repos[f"{item['name']}"] = item
 
     repos['language_count'] = language_count
+    repos_scraped = len(repos) - 1
 
-    logging.info(f"returning {len(repos)} repos...now!")
+    logging.info(f"returning {repos_scraped} repos!")
 
     return repos
 
@@ -48,7 +48,7 @@ def safe_get(soup, selector, attr):
     """
     try:
         attribute = soup.select(f'{selector}')[0].text
-    except AttributeError:
+    except IndexError:
         logging.warning(f'unable to find <{selector}> for {attr} attribute')
         return "Attribute missing"
     else:
@@ -74,6 +74,39 @@ def parse(url):
     date = str(datetime.now())
 
     contributors = []
+
+    try:
+        coders = soup.select('a[data-hovercard-type="user"]')
+    except:
+        IndexError
+        logging.warning(f"can't find contributors for {url}")
+    else:
+        for coder in coders:
+            if "github" in coder['href']:
+                contributors.append(coder['href'])
+        
+    if contributors == []: 
+        logging.warning(f"can't find contributors for {url}")
+        contributors = [url]   
+        
+    item = {
+        "name": name,
+        "url": url,
+        "description": description,
+        "language": language,
+        "total_stars": total_stars,
+        "issues": issues,
+        "pr": pr,
+        "contributors": contributors,
+        "date": date,
+    }
+
+    if language != "Attribute missing":
+        language_count[language] = 1 + language_count.get(language, 0)
+    language_count['date'] = date
+
+    return item
     
     
 
+print(get_main())
