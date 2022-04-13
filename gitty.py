@@ -92,4 +92,3 @@ def parse(url):
     return item
     
 
-print(get_main())
